@@ -1,0 +1,8 @@
+{
+	"extends": "./tsconfig-base.json",
+	"compilerOptions": {
+		"rootDir": "src",
+		"isolatedModules": true,
+		"types": ["node", "jest", "ts-expose-internals"]
+	}
+}

@@ -22,7 +22,7 @@ const config: Config = {
 	coverageReporters: ["lcov", "text"],
 	verbose: true,
 	transform: {
-		"^.+\\.tsx?$": ["ts-jest", { tsconfig: "src/CLI/tsconfig.json" }],
+		"^.+\\.tsx?$": ["ts-jest", { tsconfig: "tsconfig.jest.json", diagnostics: false }],
 	},
 };
 

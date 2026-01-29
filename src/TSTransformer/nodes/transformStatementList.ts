@@ -2,6 +2,7 @@ import luau from "@roblox-ts/luau-ast";
 import { TransformState } from "TSTransformer";
 import { transformStatement } from "TSTransformer/nodes/statements/transformStatement";
 import { createHoistDeclaration } from "TSTransformer/util/createHoistDeclaration";
+import { setLuauListSource, setLuauSource } from "TSTransformer/util/setLuauSource";
 import ts from "typescript";
 
 function getLastToken(parent: ts.Node | undefined, statements: ReadonlyArray<ts.Statement>) {
@@ -40,6 +41,8 @@ export function transformStatementList(
 		// capture prerequisite statements for the `ts.Statement`
 		// transform the statement into a luau.List<...>
 		const [transformedStatements, prereqStatements] = state.capture(() => transformStatement(state, statement));
+		setLuauListSource(prereqStatements, statement);
+		setLuauListSource(transformedStatements, statement);
 
 		// iterate through each of the leading comments of the statement
 		if (state.compilerOptions.removeComments !== true) {
@@ -50,6 +53,7 @@ export function transformStatementList(
 		// hoisting is the use of a variable before it was declared
 		const hoistDeclaration = createHoistDeclaration(state, statement);
 		if (hoistDeclaration) {
+			setLuauSource(hoistDeclaration, statement);
 			luau.list.push(result, hoistDeclaration);
 		}
 
@@ -67,14 +71,13 @@ export function transformStatementList(
 			const exportMapping = exportInfo.mapping.get(statement);
 			if (exportMapping !== undefined) {
 				for (const exportName of exportMapping) {
-					luau.list.push(
-						result,
-						luau.create(luau.SyntaxKind.Assignment, {
-							left: luau.property(containerId, exportName),
-							operator: "=",
-							right: luau.id(exportName),
-						}),
-					);
+					const exportStatement = luau.create(luau.SyntaxKind.Assignment, {
+						left: luau.property(containerId, exportName),
+						operator: "=",
+						right: luau.id(exportName),
+					});
+					setLuauSource(exportStatement, statement);
+					luau.list.push(result, exportStatement);
 				}
 			}
 		}

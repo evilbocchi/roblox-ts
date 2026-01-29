@@ -1,4 +1,4 @@
-import { renderAST } from "@roblox-ts/luau-ast";
+import { renderLuau } from "Project/util/renderLuau";
 import { PathTranslator } from "@roblox-ts/path-translator";
 import { NetworkType, RbxPath, RojoResolver } from "@roblox-ts/rojo-resolver";
 import fs from "fs-extra";
@@ -101,7 +101,12 @@ export function compileFiles(
 
 	LogService.writeLineIfVerbose(`compiling as ${projectType}..`);
 
-	const fileWriteQueue = new Array<{ sourceFile: ts.SourceFile; source: string }>();
+	const fileWriteQueue = new Array<{
+		sourceFile: ts.SourceFile;
+		source: string;
+		sourceMapText?: string;
+		mapPath?: string;
+	}>();
 	const progressMaxLength = `${sourceFiles.length}/${sourceFiles.length}`.length;
 
 	let proxyProgram = program;
@@ -176,9 +181,16 @@ export function compileFiles(
 			const luauAST = transformSourceFile(transformState, sourceFile);
 			if (DiagnosticService.hasErrors()) return;
 
-			const source = renderAST(luauAST);
+			const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
+			const { source, sourceMapText, mapPath } = renderLuau(
+				luauAST,
+				sourceFile,
+				compilerOptions,
+				outPath,
+				data.projectPath,
+			);
 
-			fileWriteQueue.push({ sourceFile, source });
+			fileWriteQueue.push({ sourceFile, source, sourceMapText, mapPath });
 		});
 	}
 
@@ -190,7 +202,7 @@ export function compileFiles(
 			const afterDeclarations = compilerOptions.declaration
 				? [transformTypeReferenceDirectives, transformPathsTransformer(program, {})]
 				: undefined;
-			for (const { sourceFile, source } of fileWriteQueue) {
+			for (const { sourceFile, source, sourceMapText, mapPath } of fileWriteQueue) {
 				const outPath = pathTranslator.getOutputPath(sourceFile.fileName);
 				if (
 					!data.projectOptions.writeOnlyChanged ||
@@ -199,6 +211,16 @@ export function compileFiles(
 				) {
 					fs.outputFileSync(outPath, source);
 					emittedFiles.push(outPath);
+				}
+				if (sourceMapText && mapPath) {
+					if (
+						!data.projectOptions.writeOnlyChanged ||
+						!fs.pathExistsSync(mapPath) ||
+						fs.readFileSync(mapPath).toString() !== sourceMapText
+					) {
+						fs.outputFileSync(mapPath, sourceMapText);
+						emittedFiles.push(mapPath);
+					}
 				}
 				if (compilerOptions.declaration) {
 					proxyProgram.emit(sourceFile, ts.sys.writeFile, undefined, true, { afterDeclarations });
