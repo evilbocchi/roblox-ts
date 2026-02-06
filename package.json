@@ -1,6 +1,6 @@
 {
 	"name": "@antivivi/roblox-ts",
-	"version": "3.0.0-av.2",
+	"version": "3.0.0-av.3",
 	"description": "A TypeScript-to-Luau Compiler for Roblox",
 	"main": "out/CLI/index.js",
 	"repository": {

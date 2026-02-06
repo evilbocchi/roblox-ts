@@ -8,7 +8,11 @@ function isOutputFileOrphaned(pathTranslator: PathTranslator, filePath: string) 
 		return true;
 	}
 
-	for (const path of pathTranslator.getInputPaths(filePath)) {
+	const inputPaths = filePath.endsWith(".map")
+		? pathTranslator.getInputPaths(filePath.slice(0, -".map".length))
+		: pathTranslator.getInputPaths(filePath);
+
+	for (const path of inputPaths) {
 		if (fs.pathExistsSync(path)) {
 			return false;
 		}

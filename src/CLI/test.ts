@@ -2,6 +2,7 @@
 
 import fs from "fs-extra";
 import path from "path";
+import { cleanup } from "Project/functions/cleanup";
 import { compileFiles } from "Project/functions/compileFiles";
 import { copyFiles } from "Project/functions/copyFiles";
 import { copyInclude } from "Project/functions/copyInclude";
@@ -173,5 +174,24 @@ describe("should emit Luau sourcemaps", () => {
 		expect(mapJson.sources?.[0]).toBe("sourcemap.ts");
 		expect(mapJson.sourcesContent?.[0]).toContain("export const result");
 		done();
+	});
+
+	it("should not delete .map files during cleanup", () => {
+		const sourceFilePath = path.join(srcRoot, "sourcemap.ts");
+		const sourceFile = program.getProgram().getSourceFile(sourceFilePath);
+		assert(sourceFile, `Missing source file ${sourceFilePath}`);
+
+		// First build
+		compileFiles(program.getProgram(), data, pathTranslator, [sourceFile]);
+
+		const outPath = pathTranslator.getOutputPath(sourceFilePath);
+		const mapPath = `${outPath}.map`;
+		expect(fs.pathExistsSync(mapPath)).toBe(true);
+
+		// Cleanup
+		cleanup(pathTranslator);
+
+		// Map file should still exist
+		expect(fs.pathExistsSync(mapPath)).toBe(true);
 	});
 });
