@@ -255,8 +255,6 @@ describe("should emit Luau sourcemaps for multiple files", () => {
 	const tempRoot = fs.mkdtempSync(path.join(PACKAGE_ROOT, "tests", ".temp-multi-sourcemap-"));
 	const srcRoot = path.join(tempRoot, "src");
 	const outRoot = path.join(tempRoot, "out");
-	const includeRoot = path.join(PACKAGE_ROOT, "tests", "include");
-	const rojoPath = path.join(PACKAGE_ROOT, "tests", "default.project.json");
 	const nodeModulesRoot = path.join(tempRoot, "node_modules");
 	const tsConfigPath = path.join(tempRoot, "tsconfig.json");
 
@@ -273,13 +271,25 @@ describe("should emit Luau sourcemaps for multiple files", () => {
 		"\tprint('multiply');",
 		"\treturn a * b;",
 		"}",
+		"export class Demoing {",
+		"\tgrert() {",
+		'\t\tprint("Hello from demoing.ts");',
+		'\t\terror("Demoing error!");',
+		"\t\treturn 5;",
+		"\t}",
+		"}",
 	].join("\n");
 
 	const mainTsCode = [
-		"import { multiply } from './lib';",
+		"import { multiply, Demoing } from './lib';",
 		"print('main');",
 		"const result = multiply(2, 3);",
 		"print(result);",
+		"function runDemo() {",
+		"\tprint('Running demo...');",
+		"\treturn new Demoing().grert();",
+		"}",
+		"runDemo();",
 	].join("\n");
 
 	const libFilePath = path.join(srcRoot, "lib.ts");
@@ -373,6 +383,7 @@ describe("should emit Luau sourcemaps for multiple files", () => {
 			consumer.eachMapping(m => {
 				mappings.push({ generatedLine: m.generatedLine, originalLine: m.originalLine });
 			});
+			console.log("Main mappings:", mappings);
 
 			const lineIndex = luaLines.findIndex(l => l.includes("local result = multiply(2, 3)"));
 			expect(lineIndex).not.toBe(-1);
@@ -381,6 +392,22 @@ describe("should emit Luau sourcemaps for multiple files", () => {
 			// main.ts line 3 is "const result = multiply(2, 3);"
 			const found = mappings.some(m => m.generatedLine === luaLine && m.originalLine === 3);
 			expect(found).toBe(true);
+
+			// there must be a mapping for the return Demoing.new():grert(); line as well
+			const grertIndex = luaLines.findIndex(l => l.includes("return Demoing.new():grert()"));
+			expect(grertIndex).not.toBe(-1);
+			const grertLuaLine = grertIndex + 1;
+
+			const grertFound = mappings.some(m => m.generatedLine === grertLuaLine && m.originalLine === 7);
+			expect(grertFound).toBe(true);
+
+			// there must be a mapping for the call to runDemo as well
+			const runDemoIndex = luaLines.findIndex(l => l.trim() === "runDemo()");
+			expect(runDemoIndex).not.toBe(-1);
+			const runDemoLuaLine = runDemoIndex + 1;
+
+			const runDemoFound = mappings.some(m => m.generatedLine === runDemoLuaLine && m.originalLine === 9);
+			expect(runDemoFound).toBe(true);
 		});
 
 		const libOutPath = pathTranslator.getOutputPath(libFilePath);
@@ -392,6 +419,7 @@ describe("should emit Luau sourcemaps for multiple files", () => {
 			consumer.eachMapping(m => {
 				mappings.push({ generatedLine: m.generatedLine, originalLine: m.originalLine });
 			});
+			console.log("Lib mappings:", mappings);
 
 			const lineIndex = luaLines.findIndex(l => l.includes('print("multiply")'));
 			expect(lineIndex).not.toBe(-1);

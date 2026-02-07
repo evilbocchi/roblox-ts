@@ -1,0 +1,146 @@
+diff --git a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderBreakStatement.js b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderBreakStatement.js
+index f86f562..26e86e7 100644
+--- a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderBreakStatement.js
++++ b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderBreakStatement.js
+@@ -2,7 +2,7 @@
+ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.renderBreakStatement = void 0;
+ function renderBreakStatement(state) {
+-    return state.line(`break`);
++    return state.line(`break`, node);
+ }
+ exports.renderBreakStatement = renderBreakStatement;
+ //# sourceMappingURL=renderBreakStatement.js.map
+\ No newline at end of file
+diff --git a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderContinueStatement.js b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderContinueStatement.js
+index 181da91..6e0687f 100644
+--- a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderContinueStatement.js
++++ b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderContinueStatement.js
+@@ -2,7 +2,7 @@
+ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.renderContinueStatement = void 0;
+ function renderContinueStatement(state) {
+-    return state.line(`continue`);
++    return state.line(`continue`, node);
+ }
+ exports.renderContinueStatement = renderContinueStatement;
+ //# sourceMappingURL=renderContinueStatement.js.map
+\ No newline at end of file
+diff --git a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderDoStatement.js b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderDoStatement.js
+index d9ca774..ec00ab4 100644
+--- a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderDoStatement.js
++++ b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderDoStatement.js
+@@ -8,7 +8,7 @@ const LuauAST_1 = __importDefault(require("../../../LuauAST"));
+ const renderStatements_1 = require("../../util/renderStatements");
+ function renderDoStatement(state, node) {
+     let result = "";
+-    result += state.line(`do`);
++    result += state.line(`do`, node);
+     result += state.block(() => (0, renderStatements_1.renderStatements)(state, node.statements));
+     result += state.line(`end`);
+     return result;
+diff --git a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderForStatement.js b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderForStatement.js
+index fb27453..ef43d06 100644
+--- a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderForStatement.js
++++ b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderForStatement.js
+@@ -11,7 +11,7 @@ function renderForStatement(state, node) {
+     const idsStr = LuauAST_1.default.list.mapToArray(node.ids, id => (0, LuauRenderer_1.render)(state, id)).join(", ") || "_";
+     const expStr = (0, LuauRenderer_1.render)(state, node.expression);
+     let result = "";
+-    result += state.line(`for ${idsStr} in ${expStr} do`);
++    result += state.line(`for ${idsStr} in ${expStr} do`, node);
+     result += state.block(() => (0, renderStatements_1.renderStatements)(state, node.statements));
+     result += state.line(`end`);
+     return result;
+diff --git a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderFunctionDeclaration.js b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderFunctionDeclaration.js
+index 335724c..0465502 100644
+--- a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderFunctionDeclaration.js
++++ b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderFunctionDeclaration.js
+@@ -16,7 +16,7 @@ function renderFunctionDeclaration(state, node) {
+     const nameStr = (0, LuauRenderer_1.render)(state, node.name);
+     const paramStr = (0, renderParameters_1.renderParameters)(state, node);
+     let result = "";
+-    result += state.line(`${node.localize ? "local " : ""}function ${nameStr}(${paramStr})`);
++    result += state.line(`${node.localize ? "local " : ""}function ${nameStr}(${paramStr})`, node);
+     result += state.block(() => (0, renderStatements_1.renderStatements)(state, node.statements));
+     result += state.line(`end`);
+     return result;
+diff --git a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderIfStatement.js b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderIfStatement.js
+index e8ce564..325806e 100644
+--- a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderIfStatement.js
++++ b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderIfStatement.js
+@@ -9,7 +9,7 @@ const LuauRenderer_1 = require("../..");
+ const renderStatements_1 = require("../../util/renderStatements");
+ function renderIfStatement(state, node) {
+     let result = "";
+-    result += state.line(`if ${(0, LuauRenderer_1.render)(state, node.condition)} then`);
++    result += state.line(`if ${(0, LuauRenderer_1.render)(state, node.condition)} then`, node);
+     result += state.block(() => (0, renderStatements_1.renderStatements)(state, node.statements));
+     let currentElseBody = node.elseBody;
+     while (LuauAST_1.default.isNode(currentElseBody)) {
+diff --git a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderMethodDeclaration.js b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderMethodDeclaration.js
+index 3eba0bf..a4093b7 100644
+--- a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderMethodDeclaration.js
++++ b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderMethodDeclaration.js
+@@ -10,7 +10,7 @@ const renderParameters_1 = require("../../util/renderParameters");
+ const renderStatements_1 = require("../../util/renderStatements");
+ function renderMethodDeclaration(state, node) {
+     let result = "";
+-    result += state.line(`function ${(0, LuauRenderer_1.render)(state, node.expression)}:${node.name}(${(0, renderParameters_1.renderParameters)(state, node)})`);
++    result += state.line(`function ${(0, LuauRenderer_1.render)(state, node.expression)}:${node.name}(${(0, renderParameters_1.renderParameters)(state, node)})`, node);
+     result += state.block(() => (0, renderStatements_1.renderStatements)(state, node.statements));
+     result += state.line(`end`);
+     return result;
+diff --git a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderNumericForStatement.js b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderNumericForStatement.js
+index b826588..e844eea 100644
+--- a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderNumericForStatement.js
++++ b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderNumericForStatement.js
+@@ -17,7 +17,7 @@ function renderNumericForStatement(state, node) {
+         predicateStr += `, ${stepStr}`;
+     }
+     let result = "";
+-    result += state.line(`for ${idStr} = ${predicateStr} do`);
++    result += state.line(`for ${idStr} = ${predicateStr} do`, node);
+     result += state.block(() => (0, renderStatements_1.renderStatements)(state, node.statements));
+     result += state.line(`end`);
+     return result;
+diff --git a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderRepeatStatement.js b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderRepeatStatement.js
+index 950e0af..ebac80e 100644
+--- a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderRepeatStatement.js
++++ b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderRepeatStatement.js
+@@ -9,7 +9,7 @@ const LuauRenderer_1 = require("../..");
+ const renderStatements_1 = require("../../util/renderStatements");
+ function renderRepeatStatement(state, node) {
+     let result = "";
+-    result += state.line(`repeat`);
++    result += state.line(`repeat`, node);
+     result += state.block(() => (0, renderStatements_1.renderStatements)(state, node.statements));
+     result += state.line(`until ${(0, LuauRenderer_1.render)(state, node.condition)}`);
+     return result;
+diff --git a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderReturnStatement.js b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderReturnStatement.js
+index 30f3cff..e5ec161 100644
+--- a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderReturnStatement.js
++++ b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderReturnStatement.js
+@@ -10,7 +10,7 @@ function renderReturnStatement(state, node) {
+     const expStr = LuauAST_1.default.list.isList(node.expression)
+         ? LuauAST_1.default.list.mapToArray(node.expression, exp => (0, LuauRenderer_1.render)(state, exp)).join(", ")
+         : (0, LuauRenderer_1.render)(state, node.expression);
+-    return state.line(`return ${expStr}`);
++    return state.line(`return ${expStr}`, node);
+ }
+ exports.renderReturnStatement = renderReturnStatement;
+ //# sourceMappingURL=renderReturnStatement.js.map
+\ No newline at end of file
+diff --git a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderWhileStatement.js b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderWhileStatement.js
+index a653df1..92af76b 100644
+--- a/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderWhileStatement.js
++++ b/node_modules/@roblox-ts/luau-ast/out/LuauRenderer/nodes/statements/renderWhileStatement.js
+@@ -9,7 +9,7 @@ const LuauRenderer_1 = require("../..");
+ const renderStatements_1 = require("../../util/renderStatements");
+ function renderWhileStatement(state, node) {
+     let result = "";
+-    result += state.line(`while ${(0, LuauRenderer_1.render)(state, node.condition)} do`);
++    result += state.line(`while ${(0, LuauRenderer_1.render)(state, node.condition)} do`, node);
+     result += state.block(() => (0, renderStatements_1.renderStatements)(state, node.statements));
+     result += state.line(`end`);
+     return result;
