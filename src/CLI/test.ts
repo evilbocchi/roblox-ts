@@ -250,3 +250,156 @@ describe("should emit Luau sourcemaps", () => {
 		expect(fs.pathExistsSync(mapPath)).toBe(true);
 	});
 });
+
+describe("should emit Luau sourcemaps for multiple files", () => {
+	const tempRoot = fs.mkdtempSync(path.join(PACKAGE_ROOT, "tests", ".temp-multi-sourcemap-"));
+	const srcRoot = path.join(tempRoot, "src");
+	const outRoot = path.join(tempRoot, "out");
+	const includeRoot = path.join(PACKAGE_ROOT, "tests", "include");
+	const rojoPath = path.join(PACKAGE_ROOT, "tests", "default.project.json");
+	const nodeModulesRoot = path.join(tempRoot, "node_modules");
+	const tsConfigPath = path.join(tempRoot, "tsconfig.json");
+
+	fs.ensureDirSync(srcRoot);
+	if (!fs.pathExistsSync(nodeModulesRoot)) {
+		const testsNodeModules = path.join(PACKAGE_ROOT, "tests", "node_modules");
+		if (fs.pathExistsSync(testsNodeModules)) {
+			fs.symlinkSync(testsNodeModules, nodeModulesRoot, "junction");
+		}
+	}
+
+	const libTsCode = [
+		"export function multiply(a: number, b: number) {",
+		"\tprint('multiply');",
+		"\treturn a * b;",
+		"}",
+	].join("\n");
+
+	const mainTsCode = [
+		"import { multiply } from './lib';",
+		"print('main');",
+		"const result = multiply(2, 3);",
+		"print(result);",
+	].join("\n");
+
+	const libFilePath = path.join(srcRoot, "lib.ts");
+	const mainFilePath = path.join(srcRoot, "main.ts");
+
+	fs.writeFileSync(libFilePath, libTsCode);
+	fs.writeFileSync(mainFilePath, mainTsCode);
+
+	fs.writeFileSync(
+		tsConfigPath,
+		JSON.stringify(
+			{
+				compilerOptions: {
+					allowSyntheticDefaultImports: true,
+					downlevelIteration: true,
+					jsx: "react",
+					jsxFactory: "Roact.jsx",
+					module: "commonjs",
+					moduleResolution: "Node",
+					noLib: true,
+					resolveJsonModule: true,
+					forceConsistentCasingInFileNames: true,
+					moduleDetection: "force",
+					strict: true,
+					target: "ESNext",
+					typeRoots: ["node_modules/@rbxts"],
+					experimentalDecorators: true,
+					rootDir: "src",
+					outDir: "out",
+					sourceMap: true,
+					inlineSources: true,
+				},
+				include: ["src"],
+			},
+			undefined,
+			"\t",
+		),
+	);
+
+	const data = createProjectData(
+		tsConfigPath,
+		Object.assign({}, DEFAULT_PROJECT_OPTIONS, {
+			project: "",
+			allowCommentDirectives: true,
+			optimizedLoops: true,
+			type: ProjectType.Package,
+		}),
+	);
+	const program = createProjectProgram(data);
+	const pathTranslator = createPathTranslator(program, data);
+
+	// clean outDir between test runs
+	fs.removeSync(outRoot);
+
+	it("should compile multiple files successfully", done => {
+		const libSourceFile = program.getProgram().getSourceFile(libFilePath);
+		const mainSourceFile = program.getProgram().getSourceFile(mainFilePath);
+		assert(libSourceFile && mainSourceFile, "Missing source files");
+
+		const emitResult = compileFiles(program.getProgram(), data, pathTranslator, [libSourceFile, mainSourceFile]);
+		if (emitResult.diagnostics.length > 0) {
+			done(new Error("\n" + formatDiagnostics(emitResult.diagnostics)));
+			return;
+		}
+		done();
+	});
+
+	it("should have correct sourcemaps for both files", () => {
+		for (const filePath of [libFilePath, mainFilePath]) {
+			const outPath = pathTranslator.getOutputPath(filePath);
+			const mapPath = `${outPath}.map`;
+			expect(fs.pathExistsSync(outPath)).toBe(true);
+			expect(fs.pathExistsSync(mapPath)).toBe(true);
+
+			const luaText = fs.readFileSync(outPath, "utf8");
+			const mapText = fs.readFileSync(mapPath, "utf8");
+			const mapJson = JSON.parse(mapText) as { sources: Array<string> };
+
+			expect(luaText).toContain("--# sourceMappingURL=");
+			expect(mapJson.sources[0]).toBe(path.basename(filePath));
+		}
+	});
+
+	it("should map lines correctly in multiple files", async () => {
+		const mainOutPath = pathTranslator.getOutputPath(mainFilePath);
+		const mainMapText = fs.readFileSync(`${mainOutPath}.map`, "utf8");
+
+		await SourceMapConsumer.with(mainMapText, null, consumer => {
+			const luaLines = fs.readFileSync(mainOutPath, "utf8").split("\n");
+			const mappings: Array<{ generatedLine: number; originalLine: number }> = [];
+			consumer.eachMapping(m => {
+				mappings.push({ generatedLine: m.generatedLine, originalLine: m.originalLine });
+			});
+
+			const lineIndex = luaLines.findIndex(l => l.includes("local result = multiply(2, 3)"));
+			expect(lineIndex).not.toBe(-1);
+			const luaLine = lineIndex + 1;
+
+			// main.ts line 3 is "const result = multiply(2, 3);"
+			const found = mappings.some(m => m.generatedLine === luaLine && m.originalLine === 3);
+			expect(found).toBe(true);
+		});
+
+		const libOutPath = pathTranslator.getOutputPath(libFilePath);
+		const libMapText = fs.readFileSync(`${libOutPath}.map`, "utf8");
+
+		await SourceMapConsumer.with(libMapText, null, consumer => {
+			const luaLines = fs.readFileSync(libOutPath, "utf8").split("\n");
+			const mappings: Array<{ generatedLine: number; originalLine: number }> = [];
+			consumer.eachMapping(m => {
+				mappings.push({ generatedLine: m.generatedLine, originalLine: m.originalLine });
+			});
+
+			const lineIndex = luaLines.findIndex(l => l.includes('print("multiply")'));
+			expect(lineIndex).not.toBe(-1);
+			const luaLine = lineIndex + 1;
+
+			// lib.ts line 2 is "	print('multiply');"
+			const found = mappings.some(m => m.generatedLine === luaLine && m.originalLine === 2);
+			expect(found).toBe(true);
+		});
+	});
+});

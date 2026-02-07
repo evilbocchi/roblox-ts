@@ -12,4 +12,4 @@ out
 /tests/*.rbxl
 /tests/*.rbxl.lock
 /tests/include
-/tests/.temp-sourcemap-*
+/tests/.temp*
